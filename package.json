@@ -1,0 +1,10 @@
+{
+  "name": "no-api-openclaw",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Research proxy for studying Anthropic OAuth detection mechanisms",
+  "main": "proxy.mjs",
+  "scripts": {
+    "start": "node proxy.mjs"
+  }
+}

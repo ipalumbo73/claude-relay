@@ -1,0 +1,11 @@
+node_modules/
+logs/
+*.log
+
+# Credentials and secrets
+.credentials.json
+cc-system-prompt.txt
+cc-system-prompt-raw.json
+
+# Claude Code local config
+.claude/

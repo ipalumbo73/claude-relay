@@ -1,0 +1,12 @@
+{
+  "port": 3456,
+  "targetHost": "api.anthropic.com",
+  "targetPath": "/v1/messages",
+  "anthropicVersion": "2023-06-01",
+  "credentialsPath": "~/.claude/.credentials.json",
+  "systemPromptPath": "./cc-system-prompt.txt",
+  "logDir": "./logs",
+  "logLevel": "info",
+  "tokenRefreshMarginMs": 300000,
+  "corsOrigin": "*"
+}
