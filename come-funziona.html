@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Come Funziona Claude Relay</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f0f1a;
+    color: #e0e0e0;
+    line-height: 1.7;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 80px 20px 60px;
+    text-align: center;
+    border-bottom: 3px solid #e94560;
+  }
+  .hero h1 { font-size: 2.8em; color: #fff; margin-bottom: 12px; }
+  .hero p { font-size: 1.2em; color: #a0b4c8; max-width: 600px; margin: 0 auto; }
+  .hero .badge {
+    display: inline-block;
+    background: #e94560;
+    color: #fff;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+
+  .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+
+  section { margin-bottom: 50px; }
+  h2 {
+    font-size: 1.8em;
+    color: #e94560;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a1a2e;
+  }
+  h3 { font-size: 1.3em; color: #53a8b6; margin: 25px 0 10px; }
+
+  p { margin-bottom: 15px; color: #c8c8d0; }
+  strong { color: #fff; }
+
+  .analogy {
+    background: linear-gradient(135deg, #1a2a3a, #1e2d4a);
+    border-left: 4px solid #53a8b6;
+    padding: 20px 24px;
+    border-radius: 0 12px 12px 0;
+    margin: 20px 0;
+  }
+  .analogy .label {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #53a8b6;
+    margin-bottom: 8px;
+  }
+
+  .diagram {
+    background: #12121f;
+    border: 1px solid #2a2a3e;
+    border-radius: 16px;
+    padding: 30px;
+    margin: 25px 0;
+    text-align: center;
+  }
+  .diagram-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+  }
+  .diagram-box {
+    background: linear-gradient(135deg, #1e2d4a, #253a5e);
+    border: 2px solid #3a5a8a;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 0.95em;
+    color: #fff;
+    min-width: 120px;
+  }
+  .diagram-box.highlight {
+    background: linear-gradient(135deg, #5a1a2e, #8a2040);
+    border-color: #e94560;
+  }
+  .diagram-arrow { color: #53a8b6; font-size: 1.5em; }
+
+  .finding {
+    background: #15152a;
+    border: 1px solid #2a2a3e;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+  }
+  .finding .number {
+    display: inline-block;
+    background: #e94560;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-size: 0.85em;
+    font-weight: bold;
+    margin-right: 10px;
+  }
+  .finding .title { color: #fff; font-weight: 600; font-size: 1.05em; }
+
+  .steps { counter-reset: step; }
+  .step {
+    background: #15152a;
+    border-radius: 12px;
+    padding: 20px 20px 20px 70px;
+    margin: 15px 0;
+    position: relative;
+  }
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 36px;
+    height: 36px;
+    background: #e94560;
+    color: #fff;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 36px;
+    font-weight: bold;
+  }
+
+  .warning {
+    background: linear-gradient(135deg, #2a1a0a, #3a2010);
+    border-left: 4px solid #e9a045;
+    padding: 18px 22px;
+    border-radius: 0 12px 12px 0;
+    margin: 25px 0;
+  }
+  .warning .label { color: #e9a045; font-size: 0.8em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+
+  footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: #555;
+    font-size: 0.85em;
+    border-top: 1px solid #1a1a2e;
+  }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 2em; }
+    .diagram-flow { flex-direction: column; }
+    .diagram-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Progetto di Ricerca</div>
+  <h1>Claude Relay</h1>
+  <p>Spiegato in modo semplice: come funziona, cosa abbiamo scoperto e perche lo facciamo.</p>
+</div>
+
+<div class="container">
+
+<!-- ===== IL PROBLEMA ===== -->
+<section>
+  <h2>Il Problema</h2>
+  <p>
+    <strong>Claude</strong> e un'intelligenza artificiale creata da Anthropic. Per usarla esistono due strade:
+  </p>
+  <p>
+    <strong>1. Claude Code</strong> &mdash; un programma ufficiale che funziona nel terminale del tuo computer. Paghi un abbonamento mensile (chiamato "Max") e puoi usarlo quanto vuoi.
+  </p>
+  <p>
+    <strong>2. Le API</strong> &mdash; un modo per far parlare i tuoi programmi direttamente con Claude. Pero qui paghi a consumo: ogni messaggio costa. E costano parecchio.
+  </p>
+  <p>
+    Noi avevamo un'esigenza: volevamo usare Claude dentro <strong>OpenClaw</strong> (un nostro assistente personale su Telegram), ma senza pagare le API a consumo, visto che avevamo gia l'abbonamento Max.
+  </p>
+
+  <div class="analogy">
+    <div class="label">Analogia</div>
+    <p>
+      Immagina di avere un abbonamento al cinema illimitato, ma che funziona solo con l'app ufficiale del cinema. Tu pero vorresti guardare i film anche dal tablet di casa. Il cinema dice: "No, dal tablet devi pagare ogni singolo film." Claude Relay e come trovare un modo per far credere al cinema che il tuo tablet sia l'app ufficiale.
+    </p>
+  </div>
+</section>
+
+<!-- ===== COSA FA IL RELAY ===== -->
+<section>
+  <h2>Cosa Fa Claude Relay</h2>
+  <p>
+    Claude Relay e un <strong>intermediario</strong>. Si mette in mezzo tra OpenClaw e Anthropic, e fa una cosa semplice: prende le richieste di OpenClaw, le "traveste" per farle sembrare richieste di Claude Code, e le inoltra.
+  </p>
+
+  <div class="diagram">
+    <p style="color: #888; margin-bottom: 15px; font-size: 0.9em;">Il percorso di un messaggio</p>
+    <div class="diagram-flow">
+      <div class="diagram-box">Tu su Telegram</div>
+      <div class="diagram-arrow">&rarr;</div>
+      <div class="diagram-box">OpenClaw</div>
+      <div class="diagram-arrow">&rarr;</div>
+      <div class="diagram-box highlight">Claude Relay</div>
+      <div class="diagram-arrow">&rarr;</div>
+      <div class="diagram-box">Anthropic (Claude)</div>
+    </div>
+    <p style="color: #666; margin-top: 15px; font-size: 0.85em;">Il Relay trasforma la richiesta prima di inviarla</p>
+  </div>
+
+  <p>Anthropic riceve la richiesta e pensa: "Ok, questa arriva da Claude Code, tutto regolare." E risponde normalmente.</p>
+</section>
+
+<!-- ===== COME FUNZIONA ===== -->
+<section>
+  <h2>Come Funziona (Passo per Passo)</h2>
+
+  <div class="steps">
+    <div class="step">
+      <strong>Mandi un messaggio su Telegram</strong><br>
+      Scrivi qualcosa al tuo bot OpenClaw, per esempio "Spiegami la fotosintesi".
+    </div>
+    <div class="step">
+      <strong>OpenClaw prepara la richiesta</strong><br>
+      OpenClaw formatta il messaggio nel formato che usano i servizi AI (come ChatGPT). Aggiunge le sue istruzioni: "Sei un assistente utile, rispondi in italiano..." e cosi via.
+    </div>
+    <div class="step">
+      <strong>Il Relay intercetta e trasforma</strong><br>
+      Qui avviene la magia. Il Relay:
+      <ul style="margin: 10px 0 0 20px; color: #a0a0b0;">
+        <li>Traduce il formato da "stile ChatGPT" a "stile Claude"</li>
+        <li>Sostituisce le istruzioni di OpenClaw con quelle ufficiali di Claude Code</li>
+        <li>Aggiunge le credenziali del tuo abbonamento Max</li>
+        <li>Aggiunge tutti i dettagli tecnici che Claude Code normalmente invia</li>
+        <li>Mette le istruzioni di OpenClaw dentro la conversazione, non nelle istruzioni di sistema</li>
+      </ul>
+    </div>
+    <div class="step">
+      <strong>Anthropic riceve e risponde</strong><br>
+      Anthropic vede una richiesta che sembra identica a quelle di Claude Code. La accetta e risponde con la spiegazione della fotosintesi.
+    </div>
+    <div class="step">
+      <strong>Il Relay ritraduce la risposta</strong><br>
+      La risposta di Claude viene riconvertita nel formato che OpenClaw capisce, e inoltrata a Telegram. Tu vedi il messaggio nella chat.
+    </div>
+  </div>
+</section>
+
+<!-- ===== IL TRAVESTIMENTO ===== -->
+<section>
+  <h2>Il Travestimento: Cosa Serve per "Sembrare" Claude Code</h2>
+  <p>
+    Anthropic non accetta qualsiasi richiesta. Controlla diversi segnali per verificare che la richiesta arrivi davvero da Claude Code. Abbiamo scoperto che i controlli principali sono:
+  </p>
+
+  <h3>1. Le istruzioni di sistema</h3>
+  <p>
+    Ogni volta che Claude Code invia una richiesta, allega un lungo testo di istruzioni (~26.000 caratteri) che dice al modello come comportarsi. Anthropic verifica che questo testo sia <strong>esattamente identico</strong> a quello originale. Se lo modifichi anche solo un po' (ad esempio aggiungendo le istruzioni di OpenClaw), la richiesta viene rifiutata.
+  </p>
+
+  <div class="analogy">
+    <div class="label">Analogia</div>
+    <p>
+      E come un documento con una filigrana. Se provi a stampare pagine extra insieme al documento, chi lo controlla nota subito che il peso e diverso dal previsto. Deve essere esattamente quello originale.
+    </p>
+  </div>
+
+  <h3>2. La carta d'identita della richiesta</h3>
+  <p>
+    Claude Code invia insieme a ogni richiesta una serie di informazioni su se stesso: il nome del programma, la versione, il sistema operativo, il tipo di connessione. Sono come i dati su una carta d'identita. Il Relay deve compilare tutti questi campi esattamente come farebbe Claude Code.
+  </p>
+
+  <h3>3. Le funzionalita speciali</h3>
+  <p>
+    Claude Code attiva sempre alcune funzionalita avanzate: un modo di "pensare" prima di rispondere, la gestione della memoria delle conversazioni, il livello di impegno. Se questi mancano, la richiesta risulta sospetta.
+  </p>
+
+  <h3>4. Il tipo di credenziali</h3>
+  <p>
+    Claude Code si autentica in modo diverso dalle API normali. Usa un sistema chiamato <strong>OAuth</strong> (lo stesso che usi quando fai "Accedi con Google" su un sito). Se il Relay usasse il metodo sbagliato, verrebbe subito riconosciuto.
+  </p>
+</section>
+
+<!-- ===== SCOPERTE ===== -->
+<section>
+  <h2>Cosa Abbiamo Scoperto</h2>
+  <p>Questa ricerca ha prodotto diverse scoperte su come Anthropic protegge il suo sistema:</p>
+
+  <div class="finding">
+    <span class="number">1</span>
+    <span class="title">Il controllo sulle dimensioni delle istruzioni</span>
+    <p style="margin-top: 8px;">
+      Quando abbiamo provato ad aggiungere le istruzioni di OpenClaw (32.000 caratteri) a quelle di Claude Code (26.000), creando un blocco di 59.000 caratteri, Anthropic ha rifiutato la richiesta. Ha riconosciuto che le istruzioni erano state modificate. La soluzione: lasciare le istruzioni originali intatte e passare quelle di OpenClaw come messaggi normali nella conversazione.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="number">2</span>
+    <span class="title">Senza travestimento, arriva il blocco</span>
+    <p style="margin-top: 8px;">
+      Abbiamo provato a mandare una richiesta con le credenziali OAuth ma senza le istruzioni di Claude Code. Risultato: errore 429 (troppi tentativi). Anthropic distingue chiaramente tra richieste "legittime" di Claude Code e richieste generiche.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="number">3</span>
+    <span class="title">Il sistema di crediti extra</span>
+    <p style="margin-top: 8px;">
+      Anthropic ha un sistema dove le app di terze parti possono usare crediti separati (non l'abbonamento). Quando le richieste vengono identificate come "non-Claude-Code", Anthropic propone di usare questi crediti alternativi invece del piano Max.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="number">4</span>
+    <span class="title">Il token si rinnova da solo</span>
+    <p style="margin-top: 8px;">
+      Le credenziali OAuth scadono dopo qualche ora. Abbiamo implementato un meccanismo che le rinnova automaticamente prima che scadano, usando lo stesso procedimento di Claude Code. Cosi il sistema funziona senza interruzioni.
+    </p>
+  </div>
+</section>
+
+<!-- ===== PERCHE ===== -->
+<section>
+  <h2>Perche Lo Facciamo</h2>
+  <p>
+    Questo progetto <strong>non</strong> e stato creato per frodare Anthropic. E un laboratorio di ricerca con tre obiettivi:
+  </p>
+
+  <div class="finding">
+    <span class="number" style="background: #53a8b6;">A</span>
+    <span class="title">Capire come funziona</span>
+    <p style="margin-top: 8px;">
+      Studiare i meccanismi di autenticazione e validazione di un sistema AI di produzione e un esercizio di ingegneria della sicurezza estremamente formativo.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="number" style="background: #53a8b6;">B</span>
+    <span class="title">Testare i limiti</span>
+    <p style="margin-top: 8px;">
+      Ogni sistema di sicurezza ha dei punti deboli. Trovarli in modo controllato (con le proprie credenziali, sul proprio server) e il modo corretto per migliorarli.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="number" style="background: #53a8b6;">C</span>
+    <span class="title">Aiutare Anthropic</span>
+    <p style="margin-top: 8px;">
+      Documentando pubblicamente queste scoperte, diamo ad Anthropic informazioni concrete su cosa funziona e cosa no nei loro controlli. Questo si chiama <strong>responsible disclosure</strong> &mdash; una pratica standard nella sicurezza informatica.
+    </p>
+  </div>
+
+  <div class="warning">
+    <div class="label">Nota importante</div>
+    <p>
+      Utilizziamo solo le nostre credenziali e il nostro abbonamento. Non accediamo a sistemi altrui, non distribuiamo questo codice per usi malevoli, e il repository e privato. Tutto e fatto nel rispetto dell'etica della ricerca sulla sicurezza.
+    </p>
+  </div>
+</section>
+
+<!-- ===== IN SINTESI ===== -->
+<section>
+  <h2>In Sintesi</h2>
+
+  <div class="diagram">
+    <p style="color: #aaa; margin-bottom: 20px;">Claude Relay in una frase:</p>
+    <p style="color: #fff; font-size: 1.15em; line-height: 1.6;">
+      Un intermediario che prende le richieste di OpenClaw,<br>
+      le <span style="color: #e94560;">traveste</span> da richieste di Claude Code,<br>
+      e le invia ad Anthropic usando il tuo abbonamento Max.<br>
+      <span style="color: #888; font-size: 0.85em;">Anthropic non si accorge della differenza perche<br>tutti i dettagli tecnici sono identici all'originale.</span>
+    </p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  Claude Relay &mdash; Progetto di Ricerca sulla Sicurezza &mdash; 2026
+</footer>
+
+</body>
+</html>
