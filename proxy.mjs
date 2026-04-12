@@ -1,8 +1,8 @@
 import { readFile, writeFile, appendFile, mkdir, watch } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { request as httpsRequest } from "node:https";
-import { homedir } from "node:os";
+import { homedir, platform, arch } from "node:os";
 import { resolve } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -11,6 +11,100 @@ import { resolve } from "node:path";
 
 const CONFIG_PATH = resolve("config.json");
 const config = JSON.parse(await readFile(CONFIG_PATH, "utf-8"));
+
+// ---------------------------------------------------------------------------
+// Claude Code Request Fingerprint
+// ---------------------------------------------------------------------------
+
+const CC_VERSION = "2.1.104";
+const SDK_VERSION = "0.81.0";
+const BETA_FLAGS = [
+  "claude-code-20250219",
+  "oauth-2025-04-20",
+  "context-1m-2025-08-07",
+  "interleaved-thinking-2025-05-14",
+  "context-management-2025-06-27",
+  "prompt-caching-scope-2026-01-05",
+  "advisor-tool-2026-03-01",
+  "effort-2025-11-24",
+].join(",");
+
+const OS_NAME = platform() === "win32" ? "Windows" : platform() === "darwin" ? "MacOS" : "Linux";
+const ARCH_NAME = arch();
+const NODE_VERSION = process.version;
+
+// Persistent session ID (changes per proxy restart, like CC does per session)
+const SESSION_ID = randomUUID();
+// Persistent device ID (stays across restarts)
+const DEVICE_ID = createHash("sha256").update(homedir()).digest("hex").slice(0, 36);
+
+function buildCCHeaders(accessToken) {
+  return {
+    "accept": "application/json",
+    "content-type": "application/json",
+    "authorization": `Bearer ${accessToken}`,
+    "anthropic-version": config.anthropicVersion,
+    "anthropic-beta": BETA_FLAGS,
+    "user-agent": `claude-cli/${CC_VERSION} (external, sdk-cli)`,
+    "x-app": "cli",
+    "x-claude-code-session-id": SESSION_ID,
+    "x-stainless-lang": "js",
+    "x-stainless-package-version": SDK_VERSION,
+    "x-stainless-os": OS_NAME,
+    "x-stainless-arch": ARCH_NAME,
+    "x-stainless-runtime": "node",
+    "x-stainless-runtime-version": NODE_VERSION,
+    "x-stainless-retry-count": "0",
+    "x-stainless-timeout": "600",
+    "anthropic-dangerous-direct-browser-access": "true",
+    // Note: intentionally omitting accept-encoding to get uncompressed responses
+  };
+}
+
+function enrichBodyForCC(body) {
+  // Add fields Claude Code always sends
+  const enriched = { ...body };
+
+  // Adaptive thinking (CC always sends this)
+  if (!enriched.thinking) {
+    enriched.thinking = { type: "adaptive" };
+  }
+
+  // Context management (beta feature CC uses)
+  if (!enriched.context_management) {
+    enriched.context_management = {
+      edits: [{ type: "clear_thinking_20251015", keep: "all" }],
+    };
+  }
+
+  // Output config with effort
+  if (!enriched.output_config) {
+    enriched.output_config = { effort: "medium" };
+  }
+
+  // Metadata with session/device identifiers
+  if (!enriched.metadata) {
+    enriched.metadata = {
+      user_id: JSON.stringify({
+        device_id: DEVICE_ID,
+        session_id: SESSION_ID,
+      }),
+    };
+  }
+
+  // Default max_tokens to what CC uses
+  if (!enriched.max_tokens) {
+    enriched.max_tokens = 16000;
+  }
+
+  return enriched;
+}
+
+// Jitter: add small random delay (50-300ms) to avoid perfectly regular request patterns
+function jitterDelay() {
+  const ms = 50 + Math.floor(Math.random() * 250);
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 // ---------------------------------------------------------------------------
 // Logging
@@ -523,19 +617,19 @@ function readBody(req) {
 
 function forwardToAnthropic(transformedBody, accessToken) {
   return new Promise((resolvePromise, reject) => {
-    const payload = JSON.stringify(transformedBody);
+    const enriched = enrichBodyForCC(transformedBody);
+    const payload = JSON.stringify(enriched);
     const startTime = Date.now();
 
+    const ccHeaders = buildCCHeaders(accessToken);
     const options = {
       hostname: config.targetHost,
       port: 443,
-      path: config.targetPath,
+      path: `${config.targetPath}?beta=true`,
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        ...ccHeaders,
         "Content-Length": Buffer.byteLength(payload),
-        "x-api-key": accessToken,
-        "anthropic-version": config.anthropicVersion,
       },
     };
 
@@ -568,21 +662,21 @@ function forwardToAnthropic(transformedBody, accessToken) {
 
 function forwardToAnthropicStreaming(transformedBody, accessToken, clientRes, customStreamHandler) {
   return new Promise((resolvePromise, reject) => {
-    const payload = JSON.stringify(transformedBody);
+    const enriched = enrichBodyForCC(transformedBody);
+    const payload = JSON.stringify(enriched);
     const startTime = Date.now();
     let ttfb = 0;
     let totalBytes = 0;
 
+    const ccHeaders = buildCCHeaders(accessToken);
     const options = {
       hostname: config.targetHost,
       port: 443,
-      path: config.targetPath,
+      path: `${config.targetPath}?beta=true`,
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        ...ccHeaders,
         "Content-Length": Buffer.byteLength(payload),
-        "x-api-key": accessToken,
-        "anthropic-version": config.anthropicVersion,
       },
     };
 
@@ -742,6 +836,9 @@ async function handleMessages(req, res) {
     systemHash: originalSystemHash,
     tokenExpired: tokenInfo.tokenExpired,
   });
+
+  // Small jitter to avoid machine-like regularity
+  await jitterDelay();
 
   // Forward — streaming or buffered
   try {
@@ -1020,6 +1117,8 @@ async function handleChatCompletions(req, res) {
     stream: !!transformedBody.stream,
     messages: transformedBody.messages.length,
   });
+
+  await jitterDelay();
 
   try {
     if (transformedBody.stream) {
