@@ -1,8 +1,37 @@
 # Claude Relay
 
+> **Disclaimer — Progetto di Ricerca sulla Sicurezza**
+>
+> Questo progetto e un **laboratorio di ricerca** creato con l'obiettivo di:
+>
+> 1. **Comprendere il funzionamento** del meccanismo di autenticazione OAuth di Claude Code e dell'API Anthropic
+> 2. **Esplorare i limiti** dei sistemi di validazione e fingerprinting delle richieste
+> 3. **Contribuire alla sicurezza di Anthropic** identificando e documentando potenziali vettori di bypass, affinche possano essere mitigati
+>
+> Tutti i risultati, le tecniche e le scoperte documentate in questo repository sono intesi come **responsible disclosure** e ricerca difensiva. L'autore utilizza esclusivamente le proprie credenziali e il proprio abbonamento, senza accesso non autorizzato a sistemi di terze parti.
+>
+> **Questo codice non deve essere utilizzato per violare i Termini di Servizio di Anthropic o per accesso non autorizzato. L'uso e esclusivamente a scopo educativo e di ricerca sulla sicurezza.**
+
+---
+
 Proxy server che permette di utilizzare i modelli Anthropic (Claude) attraverso le credenziali OAuth di Claude Code (abbonamento Max/Pro), esponendo un'interfaccia compatibile sia con l'API nativa Anthropic che con il formato OpenAI chat completions.
 
 Progettato per integrarsi con **OpenClaw** e qualsiasi client che utilizza il formato OpenAI.
+
+## Risultati della Ricerca
+
+Durante lo sviluppo di questo laboratorio sono stati documentati i seguenti risultati:
+
+| Scoperta | Dettaglio |
+|----------|-----------|
+| **Fingerprint del system prompt** | Anthropic valida la dimensione/hash del system prompt. Un prompt di 59K chars (vs 26K originale) viene rifiutato con HTTP 400. |
+| **Header fingerprinting** | Le richieste richiedono headers specifici (`x-stainless-*`, `anthropic-beta`, `user-agent`) per essere accettate come traffico Claude Code. |
+| **Body enrichment** | Campi come `thinking: {type: "adaptive"}`, `context_management` e `output_config` fanno parte del profilo di richiesta atteso. |
+| **Beta endpoint** | Claude Code usa `/v1/messages?beta=true`, non il path standard `/v1/messages`. |
+| **OAuth vs API key** | Claude Code usa `Authorization: Bearer` (OAuth), non `x-api-key` (API tradizionale). |
+| **Rate limiting differenziato** | Richieste senza system prompt CC ricevono 429 (rate limit), con prompt CC ricevono 200. |
+
+Queste informazioni sono condivise in buona fede per aiutare Anthropic a rafforzare i propri meccanismi di sicurezza.
 
 ## Funzionalita
 
@@ -329,6 +358,17 @@ Ogni richiesta viene loggata in `./logs/research-YYYY-MM-DD.jsonl`:
 }
 ```
 
+## Etica e Responsible Disclosure
+
+Questo progetto segue i principi della ricerca responsabile sulla sicurezza:
+
+- **Solo credenziali proprie**: nessun accesso a credenziali o account di terzi
+- **Documentazione aperta**: tutte le scoperte sono documentate per trasparenza
+- **Scopo difensivo**: l'obiettivo e aiutare Anthropic a identificare e correggere potenziali vulnerabilita
+- **Nessuna distribuzione malevola**: il repository e privato e non inteso per uso abusivo
+
+Se sei un membro del team di sicurezza di Anthropic e desideri discutere queste scoperte, contattami.
+
 ## Licenza
 
-Uso privato. Non distribuire.
+Uso privato — progetto di ricerca sulla sicurezza. Non distribuire.
