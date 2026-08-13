@@ -4,19 +4,16 @@
 >
 > Questo progetto e un **laboratorio di ricerca** creato con l'obiettivo di:
 >
-> 1. **Comprendere il funzionamento** del meccanismo di autenticazione OAuth di Claude Code e dell'API Anthropic
-> 2. **Esplorare i limiti** dei sistemi di validazione e fingerprinting delle richieste
-> 3. **Contribuire alla sicurezza di Anthropic** identificando e documentando potenziali vettori di bypass, affinche possano essere mitigati
+  **Comprendere il funzionamento** del meccanismo di autenticazione OAuth di Claude Code e dell'API Anthropic
 >
 > Tutti i risultati, le tecniche e le scoperte documentate in questo repository sono intesi come **responsible disclosure** e ricerca difensiva. L'autore utilizza esclusivamente le proprie credenziali e il proprio abbonamento, senza accesso non autorizzato a sistemi di terze parti.
 >
-> **Questo codice non deve essere utilizzato per violare i Termini di Servizio di Anthropic o per accesso non autorizzato. L'uso e esclusivamente a scopo educativo e di ricerca sulla sicurezza.**
 
 ---
 
 Proxy server che permette di utilizzare i modelli Anthropic (Claude) attraverso le credenziali OAuth di Claude Code (abbonamento Max/Pro), esponendo un'interfaccia compatibile sia con l'API nativa Anthropic che con il formato OpenAI chat completions.
 
-Progettato per integrarsi con **OpenClaw** e qualsiasi client che utilizza il formato OpenAI.
+Progettato per integrarsi con **OpenClaw** **PI Agent** **Hermes AI** e qualsiasi client che utilizza il formato OpenAI.
 
 ## Risultati della Ricerca
 
@@ -132,8 +129,8 @@ curl http://localhost:3456/v1/chat/completions \
 
 | ID OpenAI | ID Anthropic |
 |-----------|-------------|
-| `anthropic/claude-sonnet-4-6` | `claude-sonnet-4-6` |
-| `anthropic/claude-opus-4-6` | `claude-opus-4-6` |
+| `anthropic/claude-sonnet-5` | `claude-sonnet-5` |
+| `anthropic/claude-opus-5` | `claude-opus-5` |
 | `anthropic/claude-haiku-4-5` | `claude-haiku-4-5-20251001` |
 
 **Ruoli supportati**: `system`, `developer`, `user`, `assistant` — i ruoli `system` e `developer` vengono estratti e iniettati come messaggi nella conversazione.
